@@ -2,6 +2,7 @@ version: '3'
 
 services:
   gdbserver:
+    restart: always
     build: .
     security_opt: # options needed for gdb debugging
       - seccomp:unconfined
