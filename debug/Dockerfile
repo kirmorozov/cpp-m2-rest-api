@@ -2,7 +2,8 @@ FROM morozovgroup/s2i-base-centos8:latest
 
 RUN yum -y update && yum install -y \
     gcc gcc-c++ openssh-server cmake gdb gdb-gdbserver rsync vim \
-    libsodium-devel
+    libsodium-devel \
+    json-devel
 
 RUN mkdir /var/run/sshd && \
     echo 'root:root' | chpasswd && \

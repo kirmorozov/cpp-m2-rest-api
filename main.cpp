@@ -12,9 +12,25 @@
 
 #include <mysqlx/xdevapi.h>
 
+#include "encryptor.h"
+
+//#include "json.hpp"
+#include "Error-response.h"
+#include "Error-response.cpp"
+#include "V1IntegrationAdminTokenPostBody.h"
+#include "V1IntegrationAdminTokenPostBody.cpp"
+
 using namespace std;
-using namespace Pistache;
 using namespace mysqlx;
+using namespace Pistache;
+using m2_encryptor = mg::m2::Encryptor;
+
+using namespace io::swagger::server::model;
+
+//using namespace io::swagger::server::api;
+
+using sharedClient = std::shared_ptr<Client>;
+using sharedEncryptor = std::shared_ptr<m2_encryptor>;
 
 
 void printCookies(const Http::Request& req) {
@@ -36,17 +52,19 @@ namespace Generic {
 
 }
 
-class StatsEndpoint {
+class MG_M2_API_point {
 public:
-    StatsEndpoint(Address addr)
+    MG_M2_API_point(Address addr)
             : httpEndpoint(std::make_shared<Http::Endpoint>(addr))
     { }
 
-    void init(size_t thr = 2) {
+    void init(sharedClient connection, sharedEncryptor enc, size_t thr = 2) {
         auto opts = Http::Endpoint::options()
                 .threads(thr);
         httpEndpoint->init(opts);
         setupRoutes();
+        dbConnection = connection;
+        encryptor = enc;
         cout << "Initialized" << endl;
     }
 
@@ -58,12 +76,13 @@ public:
 private:
     void setupRoutes() {
         using namespace Rest;
-
-        Routes::Post(router, "/record/:name/:value?", Routes::bind(&StatsEndpoint::doRecordMetric, this));
-        Routes::Get(router, "/value/:name", Routes::bind(&StatsEndpoint::doGetMetric, this));
+        std::string base = "/V1";
+        Routes::Post(router, base + "/integration/admin/token", Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
+        Routes::Get(router, base + "/integration/admin/token", Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
+        Routes::Post(router, "/record/:name/:value?", Routes::bind(&MG_M2_API_point::doRecordMetric, this));
+        Routes::Get(router, "/value/:name", Routes::bind(&MG_M2_API_point::doGetMetric, this));
         Routes::Get(router, "/ready", Routes::bind(&Generic::handleReady));
-        Routes::Get(router, "/auth", Routes::bind(&StatsEndpoint::doAuth, this));
-
+        Routes::Get(router, "/auth", Routes::bind(&MG_M2_API_point::doAuth, this));
     }
 
     void doRecordMetric(const Rest::Request& request, Http::ResponseWriter response) {
@@ -117,6 +136,53 @@ private:
         response.send(Http::Code::Ok);
     }
 
+    void V1_integration_admin_token_post_handler(const Rest::Request& request, Http::ResponseWriter response) {
+
+        V1IntegrationAdminTokenPostBody PostBody;
+
+        try {
+            nlohmann::json request_body = nlohmann::json::parse(request.body());
+            PostBody.fromJson(request_body);
+            this->V1_integration_admin_token_post(PostBody, response);
+        } catch (std::runtime_error & e) {
+            //send a 400 error
+            Error_response error;
+            error.setMessage(e.what());
+            response.send(Pistache::Http::Code::Bad_Request, error.toJson());
+            return;
+        } catch (exception &e) {
+            Error_response error;
+            error.setMessage(e.what());
+            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
+            return;
+        }
+    }
+
+    void V1_integration_admin_token_post(const V1IntegrationAdminTokenPostBody &body, Pistache::Http::ResponseWriter &response) {
+
+        bool validAdmin = false;
+
+        auto sess = dbConnection->getSession();
+        {
+            auto db = sess.getDefaultSchema();
+            auto admin_table = db.getTable("admin_user");
+            //  select password from admin_user where username = ? limit 1;
+            auto res = admin_table.select("user_id", "password")
+                    .where("username = :user")
+                    .limit(1)
+                    .bind("user", body.getUsername())
+                    .execute();
+            Row data = res.fetchOne();
+            auto passwd = data[0];
+            if (!data[0].isNull()) {
+                // +70-75 ms extra for request.
+                validAdmin = encryptor->validateHash(body.getPassword(), std::string(data[1]));
+            }
+        }
+
+        response.send(Pistache::Http::Code::Ok, validAdmin?"Do some magic\n":"Bad admin\n");
+    }
+
     class Metric {
     public:
         Metric(std::string name, int initialValue = 1)
@@ -148,11 +214,13 @@ private:
     std::vector<Metric> metrics;
 
     std::shared_ptr<Http::Endpoint> httpEndpoint;
+    sharedClient dbConnection;
+    sharedEncryptor encryptor;
     Rest::Router router;
 };
 
 int main(int argc, char *argv[]) {
-    Port port(8080);
+    Pistache::Port port(8080);
 
     int thr = 2;
 
@@ -163,90 +231,37 @@ int main(int argc, char *argv[]) {
             thr = std::stol(argv[2]);
     }
 
-    Client dbConnection{"root:123123qa@172.17.0.2/b12_06", ClientOption::POOL_MAX_SIZE, thr} ;
-
-    Session sess = dbConnection.getSession();
-    {
-        auto res = sess.sql("select entity_id from sales_order order by entity_id desc;").execute();
-        Row data = res.fetchOne();
-        cout << "Result: " << data[0] << endl;
-    }
-
-    Address addr(Ipv4::any(), port);
-
     cout << "Cores = " << hardware_concurrency() << endl;
     cout << "Using " << thr << " threads" << endl;
 
-    StatsEndpoint stats(addr);
+    auto* enc = new m2_encryptor("");
+    sharedEncryptor encryptorPtr = sharedEncryptor(enc);
 
-    stats.init(thr);
+    auto* dbConnection = new Client("root:123123qa@172.17.0.3/b12_06", ClientOption::POOL_MAX_SIZE, thr);
+    sharedClient ClientPtr = sharedClient(dbConnection);
+
+    auto sess = dbConnection->getSession();
+    {
+        auto res = sess.sql("select count(1) from core_config_data;").execute();
+        Row data = res.fetchOne();
+        cout << "Mysql Connection check: " << data[0] << endl;
+    }
+
+    auto res_sha = enc->validateHash(
+            "123123qa",
+            "0db6a1f30f2b53aad28e30690a159a35f398c1c7478929c57fb24e8fa6dd4bbd:salt:1");
+    cout << "Hash validation sha256:" << res_sha << endl;
+
+    Pistache::Address addr(Pistache::Ipv4::any(), port);
+
+    auto opts = Pistache::Http::Endpoint::options()
+            .threads(1);
+
+    Pistache::Http::Endpoint server(addr);
+    MG_M2_API_point stats(addr);
+
+    stats.init(ClientPtr, encryptorPtr, thr);
+
     stats.start();
 
 }
-
-/*
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include "pistache/endpoint.h"
-
-using namespace Pistache;
-
-class HelloHandler : public Http::Handler {
-public:
-
-HTTP_PROTOTYPE(HelloHandler)
-
-    void onRequest(const Http::Request& request, Http::ResponseWriter response) override{
-        UNUSED(request);
-        response.send(Pistache::Http::Code::Ok, "Hello World\n");
-    }
-};
-
-using string = std::string;
-
-string readFile(string path)
-{
-    string result;
-    std::ifstream ifs(path.c_str(), std::ios::binary);
-    std::stringstream ss;
-
-    if (!ifs.is_open()) {
-        // Unable to read file
-        result.clear();
-        return result;
-    }
-    else if (ifs.eof()) {
-        result.clear();
-    }
-    else {
-        ifs.seekg(0);
-    }
-    ss << ifs.rdbuf() << '\0';
-
-    result = ss.str();
-    return result;
-}
-
-int main(int argc, char *argv[]) {
-    string hello = "OK hi";
-
-    string config_path = "app/etc/env.php";
-
-    if (argc == 3) config_path = argv[2];
-    string config = readFile(config_path);
-    std::cout << "Hello, World!" << hello << config << std::endl;
-
-//    Pistache::Address addr(Pistache::Ipv4::any(), Pistache::Port(9080));
-//    auto opts = Pistache::Http::Endpoint::options()
-//            .threads(1);
-//
-//    Http::Endpoint server(addr);
-//    server.init(opts);
-//    server.setHandler(Http::make_handler<HelloHandler>());
-//    server.serve();
-
-    return 0;
-}
-*/
