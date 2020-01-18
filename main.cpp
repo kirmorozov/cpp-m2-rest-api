@@ -73,10 +73,11 @@ public:
         httpEndpoint->serve();
     }
 
-private:
+protected:
     void setupRoutes() {
         using namespace Rest;
-        std::string base = "/V1";
+        std::string base = "/index.php/rest/V1";
+//        std::string base = "/V1";
         Routes::Post(router, base + "/integration/admin/token", Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
         Routes::Get(router, base + "/integration/admin/token", Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
         Routes::Post(router, "/record/:name/:value?", Routes::bind(&MG_M2_API_point::doRecordMetric, this));
@@ -148,7 +149,7 @@ private:
             //send a 400 error
             Error_response error;
             error.setMessage(e.what());
-            response.send(Pistache::Http::Code::Bad_Request, error.toJson());
+            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
             return;
         } catch (exception &e) {
             Error_response error;
@@ -161,6 +162,7 @@ private:
     void V1_integration_admin_token_post(const V1IntegrationAdminTokenPostBody &body, Pistache::Http::ResponseWriter &response) {
 
         bool validAdmin = false;
+        int adminId = 0;
 
         auto sess = dbConnection->getSession();
         {
@@ -178,9 +180,35 @@ private:
                 // +70-75 ms extra for request.
                 validAdmin = encryptor->validateHash(body.getPassword(), std::string(data[1]));
             }
+            if (validAdmin) {
+                adminId = int(data[0]);
+            }
         }
+        if (validAdmin) {
+            nlohmann::json result = _createAdminToken(adminId);
+            response.send(Pistache::Http::Code::Ok, result.dump());
+        } else {
+            Error_response error;
+            error.setMessage("Access forbidden");
+            error.setCode(int(Pistache::Http::Code::Forbidden));
+            response.send(Pistache::Http::Code::Forbidden, error.toJson().dump());
+        }
+    }
 
-        response.send(Pistache::Http::Code::Ok, validAdmin?"Do some magic\n":"Bad admin\n");
+    std::string _createAdminToken(int userId) {
+        auto token = encryptor->random_string(32);
+        auto secret = encryptor->random_string(32);
+
+        auto sess = dbConnection->getSession();
+        {
+            auto db = sess.getDefaultSchema();
+            auto token_table = db.getTable("oauth_token");
+            //  select password from admin_user where username = ? limit 1;
+            auto res = token_table.insert("admin_id", "type", "token", "secret", "callback_url")
+                    .values(userId,"access", token, secret, "")
+                    .execute();
+        }
+        return token;
     }
 
     class Metric {
