@@ -19,6 +19,8 @@
 #include "Error-response.cpp"
 #include "V1IntegrationAdminTokenPostBody.h"
 #include "V1IntegrationAdminTokenPostBody.cpp"
+#include "V1StoreView.h"
+#include "V1StoreView.cpp"
 
 using namespace std;
 using namespace mysqlx;
@@ -79,7 +81,8 @@ protected:
         std::string base = "/index.php/rest/V1";
 //        std::string base = "/V1";
         Routes::Post(router, base + "/integration/admin/token", Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
-        Routes::Get(router, base + "/integration/admin/token", Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
+        Routes::Get(router, base + "/store/storeViews", Routes::bind(&MG_M2_API_point::V1_store_storeViews_get_handler, this));
+
         Routes::Post(router, "/record/:name/:value?", Routes::bind(&MG_M2_API_point::doRecordMetric, this));
         Routes::Get(router, "/value/:name", Routes::bind(&MG_M2_API_point::doGetMetric, this));
         Routes::Get(router, "/ready", Routes::bind(&Generic::handleReady));
@@ -195,6 +198,86 @@ protected:
         }
     }
 
+    void admin_acl_check(const Rest::Request& request, std::string resource) {
+
+        // throw "The consumer isn't authorized to access %resources.";
+    }
+
+    void V1_store_storeViews_get_handler(const Rest::Request& request, Http::ResponseWriter response) {
+
+//        V1IntegrationAdminTokenPostBody PostBody;
+        std::string _acl_resource = "Magento_Backend::store";
+        try {
+            this->admin_acl_check(request, _acl_resource);
+            // nlohmann::json request_body = nlohmann::json::parse(request.body());
+            // PostBody.fromJson(request_body);
+            this->V1_store_storeViews_get(request, response);
+        } catch (std::runtime_error & e) {
+            //send a 400 error
+            Error_response error;
+            error.setMessage(e.what());
+            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
+            return;
+        } catch (exception &e) {
+            Error_response error;
+            error.setMessage(e.what());
+            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
+            return;
+        }
+    }
+
+
+    void V1_store_storeViews_get(const Rest::Request& request, Pistache::Http::ResponseWriter &response) {
+
+        bool validAdmin = false;
+        int adminId = 0;
+
+        std::list<nlohmann::json> result;
+
+        auto sess = dbConnection->getSession();
+        {
+            auto db = sess.getDefaultSchema();
+            auto store_table = db.getTable("store");
+            //  select password from admin_user where username = ? limit 1;
+            auto res = store_table.select().execute();
+            auto data = res.fetchAll();
+            const Columns &columns = res.getColumns();
+            for (Row row : data)
+            {
+                V1StoreView store;
+                for (unsigned index=0; index < res.getColumnCount(); ++index)
+                {
+                    if (columns[index].getColumnName() == "store_id") {
+                            store.setId(row[index]);
+                    }
+                    if (columns[index].getColumnName() == "code"){
+                        store.setCode(std::string(row[index]));
+                    }
+                    if (columns[index].getColumnName() == "name"){
+                        store.setName(std::string(row[index]));
+                    }
+                    if (columns[index].getColumnName() == "website_id"){
+                        store.setWebsiteId(row[index]);
+                    }
+                    if (columns[index].getColumnName() == "group_id") {
+                        store.setStoreGroupId(row[index]);
+                    }
+                    if (columns[index].getColumnName() == "is_active") {
+                        store.setIsActive(row[index]);
+                    }
+                }
+                result.push_back(store.toJson());
+
+            }
+        }
+
+        nlohmann::json json_result(result);
+        response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
+        response.send(Pistache::Http::Code::Bad_Request, json_result.dump());
+
+    }
+
+
     std::string _createAdminToken(int userId) {
         auto token = encryptor->random_string(32);
         auto secret = encryptor->random_string(32);
@@ -262,10 +345,12 @@ int main(int argc, char *argv[]) {
     cout << "Cores = " << hardware_concurrency() << endl;
     cout << "Using " << thr << " threads" << endl;
 
+    auto encryption_key = std::string(std::getenv("M2_ENCRYPTION_KEY"));
     auto* enc = new m2_encryptor("");
     sharedEncryptor encryptorPtr = sharedEncryptor(enc);
 
-    auto* dbConnection = new Client("root:123123qa@172.17.0.3/b12_06", ClientOption::POOL_MAX_SIZE, thr);
+    auto connection_string = std::string(std::getenv("M2_MYSQL_CONNECTION")); // "root:123123qa@172.17.0.3/b12_06"
+    auto* dbConnection = new Client(connection_string, ClientOption::POOL_MAX_SIZE, thr);
     sharedClient ClientPtr = sharedClient(dbConnection);
 
     auto sess = dbConnection->getSession();

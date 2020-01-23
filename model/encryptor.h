@@ -1,4 +1,5 @@
 #include <sodium.h>
+#include <random>
 
 #ifndef MG_API_ENCRYPTOR_H
 #define MG_API_ENCRYPTOR_H
@@ -117,6 +118,24 @@ namespace mg {
 
             std::string _hash(std::string password) {
                 return "123123qa";
+            }
+
+            std::string random_string(std::size_t length)
+            {
+                const std::string characters = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+                std::random_device random_device;
+                std::mt19937 generator(random_device());
+                std::uniform_int_distribution<> distribution(0, characters.size() - 1);
+
+                std::string random_string;
+
+                for (std::size_t i = 0; i < length; ++i)
+                {
+                    random_string += characters[distribution(generator)];
+                }
+
+                return random_string;
             }
 
         protected:
