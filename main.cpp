@@ -200,7 +200,39 @@ protected:
 
     void admin_acl_check(const Rest::Request& request, std::string resource) {
 
-        // throw "The consumer isn't authorized to access %resources.";
+        Error_response error(Pistache::Http::Code::Unauthorized, std::string("The consumer isn't authorized to access %resources."));
+        nlohmann::json paramsJson;
+        paramsJson["resources"] = resource;
+        error.setParameters(paramsJson);
+
+        bool authorized = false;
+        auto sess = dbConnection->getSession();
+        {
+            if (!request.headers().has("Authorization")) {
+                throw error;
+            }
+            auto authheader = request.headers().get<Pistache::Http::Header::Authorization>();
+            auto auth_str = authheader->value();
+            std::string token = auth_str.substr(7,32);
+
+            auto result = sess.sql("select at.admin_id from oauth_token as at\n"
+                     "inner join authorization_role ar ON ar.user_id = at.admin_id\n"
+                     "inner join authorization_rule a on ar.parent_id = a.role_id\n"
+                     "where at.token = ?\n"
+                     "    and a.resource_id in ('Magento_Backend::all', ?)"
+                     "    and a.permission='allow'")
+                     .bind(token)
+                     .bind(resource)
+                     .execute();
+            auto rowList = result.fetchAll();
+            if (result.count() > 0) {
+                authorized = true;
+            }
+        }
+
+        if (!authorized) {
+            throw error;
+        }
     }
 
     void V1_store_storeViews_get_handler(const Rest::Request& request, Http::ResponseWriter response) {
@@ -212,17 +244,22 @@ protected:
             // nlohmann::json request_body = nlohmann::json::parse(request.body());
             // PostBody.fromJson(request_body);
             this->V1_store_storeViews_get(request, response);
-        } catch (std::runtime_error & e) {
+        } catch (std::runtime_error &e) {
             //send a 400 error
             Error_response error;
             error.setMessage(e.what());
+            response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
             response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
             return;
         } catch (exception &e) {
             Error_response error;
             error.setMessage(e.what());
+            response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
             response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
             return;
+        } catch (Error_response &e) {
+            response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
+            response.send(e.getHttpCode(),e.toJson().dump());
         }
     }
 

@@ -46,6 +46,7 @@ public:
     static double toJson( double value );
     static bool toJson( bool value );
     static nlohmann::json toJson( std::shared_ptr<ModelBase> content );
+    static nlohmann::json toJson(nlohmann::json& value);
 
 };
 

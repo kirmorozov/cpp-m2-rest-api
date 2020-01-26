@@ -30,6 +30,24 @@ Error_response::Error_response()
     
 }
 
+Error_response::Error_response(Pistache::Http::Code code, std::string message)
+{
+    m_Message = message;
+    m_ErrorsIsSet = false;
+    m_Code = 0;
+    m_CodeIsSet = false;
+    m_ParametersIsSet = false;
+    m_Trace = "";
+    m_TraceIsSet = false;
+    _httpCode = code;
+}
+
+Error_response::Error_response(std::string message)
+{
+    Error_response();
+    m_Message = message;
+}
+
 Error_response::~Error_response()
 {
 }
@@ -54,7 +72,7 @@ nlohmann::json Error_response::toJson() const
     }
     if(m_ParametersIsSet)
     {
-        val["parameters"] = ModelBase::toJson(m_Parameters);
+        val["parameters"] = m_Parameters;
     }
     if(m_TraceIsSet)
     {
@@ -86,9 +104,7 @@ void Error_response::fromJson(nlohmann::json& val)
     {
         if(!val["parameters"].is_null())
         {
-            std::shared_ptr<Error_parameters> newItem(new Error_parameters());
-            newItem->fromJson(val["parameters"]);
-            setParameters( newItem );
+            setParameters( val["parameters"]);
         }
         
     }
@@ -144,11 +160,17 @@ void Error_response::unsetCode()
 {
     m_CodeIsSet = false;
 }
-std::shared_ptr<Error_parameters> Error_response::getParameters() const
+
+Pistache::Http::Code Error_response::getHttpCode() const
+{
+    return _httpCode;
+}
+
+nlohmann::json Error_response::getParameters() const
 {
     return m_Parameters;
 }
-void Error_response::setParameters(std::shared_ptr<Error_parameters> value)
+void Error_response::setParameters(nlohmann::json& value)
 {
     m_Parameters = value;
     m_ParametersIsSet = true;

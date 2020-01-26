@@ -21,7 +21,6 @@
 
 #include "ModelBase.h"
 
-#include "Error-parameters.h"
 #include <string>
 
 namespace io {
@@ -60,15 +59,15 @@ public:
     /// <summary>
     /// 
     /// </summary>
-    std::shared_ptr<Error_parameters> getParameters() const;
-    void setParameters(std::shared_ptr<Error_parameters> value);
+    nlohmann::json getParameters() const;
+    void setParameters(nlohmann::json value);
     bool parametersIsSet() const;
     void unsetParameters();
 
 protected:
     std::string m_Message;
     bool m_MessageIsSet;
-    std::shared_ptr<Error_parameters> m_Parameters;
+    nlohmann::json m_Parameters;
     bool m_ParametersIsSet;
 };
 

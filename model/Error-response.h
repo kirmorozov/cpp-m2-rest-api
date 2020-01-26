@@ -23,8 +23,6 @@
 
 #include "Error-errors.h"
 #include "Error-errors.cpp"
-#include "Error-parameters.h"
-#include "Error-parameters.cpp"
 #include <string>
 
 namespace io {
@@ -40,6 +38,8 @@ class  Error_response
 {
 public:
     Error_response();
+    Error_response(std::string message);
+    Error_response(Pistache::Http::Code code, std::string message);
     virtual ~Error_response();
 
     /////////////////////////////////////////////
@@ -72,11 +72,13 @@ public:
     void setCode(int32_t value);
     bool codeIsSet() const;
     void unsetCode();
+    Pistache::Http::Code getHttpCode() const;
+
     /// <summary>
     /// 
     /// </summary>
-    std::shared_ptr<Error_parameters> getParameters() const;
-    void setParameters(std::shared_ptr<Error_parameters> value);
+    nlohmann::json getParameters() const;
+    void setParameters(nlohmann::json& value);
     bool parametersIsSet() const;
     void unsetParameters();
     /// <summary>
@@ -94,10 +96,11 @@ protected:
     bool m_ErrorsIsSet;
     int32_t m_Code;
     bool m_CodeIsSet;
-    std::shared_ptr<Error_parameters> m_Parameters;
+    nlohmann::json m_Parameters;
     bool m_ParametersIsSet;
     std::string m_Trace;
     bool m_TraceIsSet;
+    Pistache::Http::Code _httpCode;
 };
 
 }

@@ -63,9 +63,7 @@ void Error-errors-item::fromJson(nlohmann::json& val)
     {
         if(!val["parameters"].is_null())
         {
-            std::shared_ptr<Error-parameters> newItem(new Error-parameters());
-            newItem->fromJson(val["parameters"]);
-            setParameters( newItem );
+            setParameters(  val["parameters"]);
         }
         
     }
@@ -90,11 +88,11 @@ void Error-errors-item::unsetMessage()
 {
     m_MessageIsSet = false;
 }
-std::shared_ptr<Error-parameters> Error-errors-item::getParameters() const
+nlohmann::json Error-errors-item::getParameters() const
 {
     return m_Parameters;
 }
-void Error-errors-item::setParameters(std::shared_ptr<Error-parameters> value)
+void Error-errors-item::setParameters(nlohmann::json value)
 {
     m_Parameters = value;
     m_ParametersIsSet = true;

@@ -60,6 +60,11 @@ nlohmann::json ModelBase::toJson( std::shared_ptr<ModelBase> content )
     return content.get() ? content->toJson() : nlohmann::json();
 }
 
+nlohmann::json ModelBase::toJson(nlohmann::json& value )
+{
+    return value;
+}
+
 }
 }
 }
