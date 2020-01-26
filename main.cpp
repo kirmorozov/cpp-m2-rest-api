@@ -87,6 +87,9 @@ protected:
                     Routes::bind(&MG_M2_API_point::V1_store_storeViews_get_handler, this));
         Routes::Get(router, base + "/store/storeGroups",
                     Routes::bind(&MG_M2_API_point::V1_store_storeGroups_get_handler, this));
+        Routes::Get(router, base + "/modules",
+                    Routes::bind(&MG_M2_API_point::V1_modules_get_handler, this));
+
 
         Routes::Post(router, "/record/:name/:value?", Routes::bind(&MG_M2_API_point::doRecordMetric, this));
         Routes::Get(router, "/value/:name", Routes::bind(&MG_M2_API_point::doGetMetric, this));
@@ -269,7 +272,6 @@ protected:
         }
     }
 
-
     void V1_store_storeViews_get(const Rest::Request &request, Pistache::Http::ResponseWriter &response) {
 
         bool validAdmin = false;
@@ -396,6 +398,59 @@ protected:
 
     }
 
+    void V1_modules_get_handler(const Rest::Request &request, Http::ResponseWriter response) {
+
+//        V1IntegrationAdminTokenPostBody PostBody;
+        std::string _acl_resource = "Magento_Backend::admin";
+        try {
+            this->admin_acl_check(request, _acl_resource);
+            // nlohmann::json request_body = nlohmann::json::parse(request.body());
+            // PostBody.fromJson(request_body);
+            this->V1_modules_get(request, response);
+        } catch (std::runtime_error &e) {
+            //send a 400 error
+            Error_response error;
+            error.setMessage(e.what());
+            response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
+            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
+            return;
+        } catch (exception &e) {
+            Error_response error;
+            error.setMessage(e.what());
+            response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
+            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
+            return;
+        } catch (Error_response &e) {
+            response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
+            response.send(e.getHttpCode(), e.toJson().dump());
+        }
+    }
+
+    void V1_modules_get(const Rest::Request &request, Pistache::Http::ResponseWriter &response) {
+
+        bool validAdmin = false;
+        int adminId = 0;
+
+        std::list<std::string> result;
+
+        auto sess = dbConnection->getSession();
+        {
+            auto db = sess.getDefaultSchema();
+            auto store_table = db.getTable("setup_module");
+            //  select password from admin_user where username = ? limit 1;
+            auto res = store_table.select("module").execute();
+            auto data = res.fetchAll();
+            const Columns &columns = res.getColumns();
+            for (Row row : data) {
+                result.push_back(std::string(row[0]));
+            }
+        }
+
+        nlohmann::json json_result(result);
+        response.headers().add<Http::Header::ContentType>(MIME(Application, Json));
+        response.send(Pistache::Http::Code::Bad_Request, json_result.dump());
+
+    }
 
     std::string _createAdminToken(int userId) {
         auto token = encryptor->random_string(32);
