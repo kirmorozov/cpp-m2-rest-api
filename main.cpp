@@ -24,9 +24,15 @@
 #include "store/V1StoreGroup.h"
 #include "store/V1StoreGroup.cpp"
 
+#include <iostream>
+#include <filesystem>
+#include <php/sapi/embed/php_embed.h>
+#include <phpcpp.h>
+
 using namespace std;
 using namespace mysqlx;
 using namespace Pistache;
+//using namespace Php;
 using m2_encryptor = mg::m2::Encryptor;
 
 using namespace io::swagger::server::model;
@@ -35,6 +41,7 @@ using namespace io::swagger::server::model;
 
 using sharedClient = std::shared_ptr<Client>;
 using sharedEncryptor = std::shared_ptr<m2_encryptor>;
+namespace fs = std::filesystem;
 
 
 void printCookies(const Http::Request &req) {
@@ -505,7 +512,16 @@ protected:
 
 int main(int argc, char *argv[]) {
     Pistache::Port port(8080);
+    PHP_EMBED_START_BLOCK(0, NULL);
 
+    Php::Value data = "Working now:";
+    Php::Object time("DateTime", "now");
+
+    // call a method on the datetime object
+    Php::out << data << time.call("format", "Y-m-d H:i:s") << std::endl;
+//    zend_eval_string("return 'abcdefg';", &retval, "execution");
+    PHP_EMBED_END_BLOCK();
+//    std::cout << "PHP returns: " << Z_STRVAL(retval);
     int thr = 2;
 
     if (argc >= 2) {
@@ -517,6 +533,7 @@ int main(int argc, char *argv[]) {
 
     cout << "Cores = " << hardware_concurrency() << endl;
     cout << "Using " << thr << " threads" << endl;
+    cout << "CWD: " << fs::current_path() << endl;
 
     auto encryption_key = std::string(std::getenv("M2_ENCRYPTION_KEY"));
     auto *enc = new m2_encryptor("");
