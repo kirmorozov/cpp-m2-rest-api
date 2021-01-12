@@ -24,10 +24,9 @@
 #include "store/V1StoreGroup.h"
 #include "store/V1StoreGroup.cpp"
 
+#include <thread>
 #include <iostream>
 #include <filesystem>
-#include <php/sapi/embed/php_embed.h>
-#include <phpcpp.h>
 
 using namespace std;
 using namespace mysqlx;
@@ -57,8 +56,10 @@ void printCookies(const Http::Request &req) {
 namespace Generic {
 
     void handleReady(const Rest::Request &, Http::ResponseWriter response) {
-
-        response.send(Http::Code::Ok, "1");
+        auto thr_id = std::this_thread::get_id();
+        std::stringstream respBuffer;
+        respBuffer << "Current Thread: " << thr_id;
+        response.send(Http::Code::Ok, respBuffer.str());
     }
 
 }
@@ -75,12 +76,12 @@ public:
         setupRoutes();
         dbConnection = connection;
         encryptor = enc;
-        cout << "Initialized" << endl;
     }
 
     void start() {
         httpEndpoint->setHandler(router.handler());
         httpEndpoint->serve();
+        cout << "Running" <<endl;
     }
 
 protected:
@@ -100,7 +101,7 @@ protected:
 
         Routes::Post(router, "/record/:name/:value?", Routes::bind(&MG_M2_API_point::doRecordMetric, this));
         Routes::Get(router, "/value/:name", Routes::bind(&MG_M2_API_point::doGetMetric, this));
-        Routes::Get(router, "/ready", Routes::bind(&Generic::handleReady));
+        Routes::Get(router, "/_ready", Routes::bind(&Generic::handleReady));
         Routes::Get(router, "/auth", Routes::bind(&MG_M2_API_point::doAuth, this));
     }
 
@@ -512,16 +513,10 @@ protected:
 
 int main(int argc, char *argv[]) {
     Pistache::Port port(8080);
-    PHP_EMBED_START_BLOCK(0, NULL);
+    std::string dbConfigStr;
+    dbConfigStr = std::getenv("M2_MYSQL_CONNECTION");
 
-    Php::Value data = "Working now:";
-    Php::Object time("DateTime", "now");
 
-    // call a method on the datetime object
-    Php::out << data << time.call("format", "Y-m-d H:i:s") << std::endl;
-//    zend_eval_string("return 'abcdefg';", &retval, "execution");
-    PHP_EMBED_END_BLOCK();
-//    std::cout << "PHP returns: " << Z_STRVAL(retval);
     int thr = 2;
 
     if (argc >= 2) {
@@ -539,7 +534,9 @@ int main(int argc, char *argv[]) {
     auto *enc = new m2_encryptor("");
     sharedEncryptor encryptorPtr = sharedEncryptor(enc);
 
-    auto connection_string = std::string(std::getenv("M2_MYSQL_CONNECTION")); // "root:123123qa@172.17.0.3/b12_06"
+    auto connection_string = dbConfigStr; //std::string(std::getenv("M2_MYSQL_CONNECTION")); // "root:123123qa@172.17.0.3/b12_06"
+
+    cout << connection_string << endl;
     auto *dbConnection = new Client(connection_string, ClientOption::POOL_MAX_SIZE, thr);
     sharedClient ClientPtr = sharedClient(dbConnection);
 
@@ -549,16 +546,17 @@ int main(int argc, char *argv[]) {
         Row data = res.fetchOne();
         cout << "Mysql Connection check: " << data[0] << endl;
     }
-
-    auto res_sha = enc->validateHash(
-            "123123qa",
-            "0db6a1f30f2b53aad28e30690a159a35f398c1c7478929c57fb24e8fa6dd4bbd:salt:1");
-    cout << "Hash validation sha256:" << res_sha << endl;
+//
+//    auto res_sha = enc->validateHash(
+//            "123123qa",
+//            "0db6a1f30f2b53aad28e30690a159a35f398c1c7478929c57fb24e8fa6dd4bbd:salt:1");
+//    cout << "Hash validation sha256:" << res_sha << endl;
 
     Pistache::Address addr(Pistache::Ipv4::any(), port);
 
     auto opts = Pistache::Http::Endpoint::options()
             .threads(1);
+    opts.flags(Tcp::Options::ReuseAddr);
 
     Pistache::Http::Endpoint server(addr);
     MG_M2_API_point stats(addr);

@@ -13,8 +13,8 @@ services:
       - "7722:22"
       - "7777:7777"
       - "8080:8080"
-#    volumes:
-#      - .:/code
+    volumes:
+      - ../:/code
 
 networks:
   default:

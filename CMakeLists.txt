@@ -8,13 +8,7 @@ include_directories(/usr/include)
 include_directories(/usr/local/include)
 include_directories(/usr/include/mysql-cppconn-8)
 
-# PHP libs
-include_directories(/usr/include/php)
-include_directories(/usr/include/php/main)
-include_directories(/usr/include/php/TSRM)
-include_directories(/usr/include/php/Zend)
-include_directories(/usr/include/php/ext)
-include_directories(/usr/include/php/ext/date/lib)
+
 
 link_directories(/usr/lib64)
 link_directories(/usr/local/lib)
@@ -27,5 +21,5 @@ include_directories(model)
 
 
 add_executable(mg_m2_api main.cpp)
-target_link_libraries(mg_m2_api pistache pthread mysqlcppconn8 sodium stdc++fs php7 phpcpp)
+target_link_libraries(mg_m2_api pistache pthread mysqlcppconn8 sodium stdc++fs crypto ssl)
 # target_link_libraries(mg_m2_api crypt   resolv crypt stdc++ z pcre rt m dl  xml2 z lzma m dl gssapi_krb5 krb5 k5crypto com_err ssl crypto crypt crypt)
