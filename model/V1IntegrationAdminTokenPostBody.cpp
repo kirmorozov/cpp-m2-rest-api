@@ -15,67 +15,54 @@
 #include "ModelBase.h"
 #include "ModelBase.cpp"
 
-namespace io {
-namespace swagger {
-namespace server {
-namespace model {
+namespace io::swagger::server::model {
 
-V1IntegrationAdminTokenPostBody::V1IntegrationAdminTokenPostBody()
-{
-    m_Username = "";
-    m_Password = "";
+    V1IntegrationAdminTokenPostBody::V1IntegrationAdminTokenPostBody() {
+        m_Username = "";
+        m_Password = "";
 
-}
+    }
 
-V1IntegrationAdminTokenPostBody::~V1IntegrationAdminTokenPostBody()
-{
-}
+    V1IntegrationAdminTokenPostBody::~V1IntegrationAdminTokenPostBody() {
+    }
 
-void V1IntegrationAdminTokenPostBody::validate()
-{
-    // TODO: implement validation
-}
+    void V1IntegrationAdminTokenPostBody::validate() {
+        // TODO: implement validation
+    }
 
-nlohmann::json V1IntegrationAdminTokenPostBody::toJson() const
-{
-    nlohmann::json val = nlohmann::json::object();
+    nlohmann::json V1IntegrationAdminTokenPostBody::toJson() const {
+        nlohmann::json val = nlohmann::json::object();
 
-    val["username"] = ModelBase::toJson(m_Username);
-    val["password"] = ModelBase::toJson(m_Password);
-    
-
-    return val;
-}
-
-void V1IntegrationAdminTokenPostBody::fromJson(nlohmann::json& val)
-{
-    setUsername(val.at("username"));
-    setPassword(val.at("password"));
-    
-}
+        val["username"] = ModelBase::toJson(m_Username);
+        val["password"] = ModelBase::toJson(m_Password);
 
 
-std::string V1IntegrationAdminTokenPostBody::getUsername() const
-{
-    return m_Username;
-}
-void V1IntegrationAdminTokenPostBody::setUsername(std::string value)
-{
-    m_Username = value;
-    
-}
-std::string V1IntegrationAdminTokenPostBody::getPassword() const
-{
-    return m_Password;
-}
-void V1IntegrationAdminTokenPostBody::setPassword(std::string value)
-{
-    m_Password = value;
-    
-}
+        return val;
+    }
 
-}
-}
-}
+    void V1IntegrationAdminTokenPostBody::fromJson(nlohmann::json &val) {
+        setUsername(val.at("username"));
+        setPassword(val.at("password"));
+
+    }
+
+
+    std::string V1IntegrationAdminTokenPostBody::getUsername() const {
+        return m_Username;
+    }
+
+    void V1IntegrationAdminTokenPostBody::setUsername(std::string value) {
+        m_Username = value;
+
+    }
+
+    std::string V1IntegrationAdminTokenPostBody::getPassword() const {
+        return m_Password;
+    }
+
+    void V1IntegrationAdminTokenPostBody::setPassword(std::string value) {
+        m_Password = value;
+
+    }
 }
 

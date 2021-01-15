@@ -31,12 +31,11 @@
 using namespace std;
 using namespace mysqlx;
 using namespace Pistache;
-//using namespace Php;
+
 using m2_encryptor = mg::m2::Encryptor;
 
 using namespace io::swagger::server::model;
 
-//using namespace io::swagger::server::api;
 
 using sharedClient = std::shared_ptr<Client>;
 using sharedEncryptor = std::shared_ptr<m2_encryptor>;
@@ -98,61 +97,7 @@ protected:
         Routes::Get(router, base + "/modules",
                     Routes::bind(&MG_M2_API_point::V1_modules_get_handler, this));
 
-
-        Routes::Post(router, "/record/:name/:value?", Routes::bind(&MG_M2_API_point::doRecordMetric, this));
-        Routes::Get(router, "/value/:name", Routes::bind(&MG_M2_API_point::doGetMetric, this));
         Routes::Get(router, "/_ready", Routes::bind(&Generic::handleReady));
-        Routes::Get(router, "/auth", Routes::bind(&MG_M2_API_point::doAuth, this));
-    }
-
-    void doRecordMetric(const Rest::Request &request, Http::ResponseWriter response) {
-        auto name = request.param(":name").as<std::string>();
-
-        Guard guard(metricsLock);
-        auto it = std::find_if(metrics.begin(), metrics.end(), [&](const Metric &metric) {
-            return metric.name() == name;
-        });
-
-        int val = 1;
-        if (request.hasParam(":value")) {
-            auto value = request.param(":value");
-            val = value.as<int>();
-        }
-
-        if (it == std::end(metrics)) {
-            metrics.push_back(Metric(std::move(name), val));
-            response.send(Http::Code::Created, std::to_string(val));
-        } else {
-            auto &metric = *it;
-            metric.incr(val);
-            response.send(Http::Code::Ok, std::to_string(metric.value()));
-        }
-
-    }
-
-    void doGetMetric(const Rest::Request &request, Http::ResponseWriter response) {
-        auto name = request.param(":name").as<std::string>();
-
-        Guard guard(metricsLock);
-        auto it = std::find_if(metrics.begin(), metrics.end(), [&](const Metric &metric) {
-            return metric.name() == name;
-        });
-
-        if (it == std::end(metrics)) {
-            response.send(Http::Code::Not_Found, "Metric does not exist");
-        } else {
-            const auto &metric = *it;
-            response.send(Http::Code::Ok, std::to_string(metric.value()));
-        }
-
-    }
-
-    void doAuth(const Rest::Request &request, Http::ResponseWriter response) {
-        printCookies(request);
-        response.cookies()
-                .add(Http::Cookie("lang", "en-US"));
-
-        response.send(Http::Code::Ok);
     }
 
     void V1_integration_admin_token_post_handler(const Rest::Request &request, Http::ResponseWriter response) {
@@ -476,34 +421,6 @@ protected:
         return token;
     }
 
-    class Metric {
-    public:
-        Metric(std::string name, int initialValue = 1)
-                : name_(std::move(name)), value_(initialValue) {}
-
-        int incr(int n = 1) {
-            int old = value_;
-            value_ += n;
-            return old;
-        }
-
-        int value() const {
-            return value_;
-        }
-
-        std::string name() const {
-            return name_;
-        }
-
-    private:
-        std::string name_;
-        int value_;
-    };
-
-    typedef std::mutex Lock;
-    typedef std::lock_guard<Lock> Guard;
-    Lock metricsLock;
-    std::vector<Metric> metrics;
 
     std::shared_ptr<Http::Endpoint> httpEndpoint;
     sharedClient dbConnection;

@@ -10,19 +10,17 @@
 
 #include <string>
 
-namespace io {
-namespace swagger {
-namespace server {
-namespace model {
+namespace io::swagger::server::model {
+
 
 /// <summary>
 ///
 /// </summary>
-    class  V1StoreView
-            : public ModelBase
-    {
+    class V1StoreView
+            : public ModelBase {
     public:
         V1StoreView();
+
         virtual ~V1StoreView();
 
         /////////////////////////////////////////////
@@ -31,7 +29,8 @@ namespace model {
         void validate() override;
 
         nlohmann::json toJson() const override;
-        void fromJson(nlohmann::json& json) override;
+
+        void fromJson(nlohmann::json &json) override;
 
         /////////////////////////////////////////////
         /// V1StoreView members
@@ -40,31 +39,42 @@ namespace model {
         ///
         /// </summary>
         int getId() const;
+
         void setId(int value);
+
         /// <summary>
         ///
         /// </summary>
         std::string getCode() const;
+
         void setCode(std::string value);
+
         /// <summary>
         ///
         /// </summary>
         std::string getName() const;
+
         void setName(std::string value);
+
         /// <summary>
         ///
         /// </summary>
         int getWebsiteId() const;
+
         void setWebsiteId(int value);
+
         /// <summary>
         ///
         /// </summary>
         int getStoreGroupId() const;
+
         void setStoreGroupId(int value);
+
         /// <summary>
         ///
         /// </summary>
         int getIsActive() const;
+
         void setIsActive(int value);
 
     protected:
@@ -76,9 +86,6 @@ namespace model {
         int _is_active;
     };
 
-}
-}
-}
 }
 
 #endif //MG_M2_API_V1STOREVIEW_H

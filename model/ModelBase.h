@@ -23,36 +23,37 @@
 #include <ctime>
 #include <string>
 
-namespace io {
-namespace swagger {
-namespace server {
-namespace model {
+namespace io::swagger::server::model {
+    class ModelBase {
+    public:
+        ModelBase();
 
-class  ModelBase
-{
-public:
-    ModelBase();
-    virtual ~ModelBase();
+        virtual ~ModelBase();
 
-    virtual void validate() = 0;
+        virtual void validate() = 0;
 
-    virtual nlohmann::json toJson() const = 0;
-    virtual void fromJson(nlohmann::json& json) = 0;
+        virtual nlohmann::json toJson() const = 0;
 
-    static std::string toJson( const std::string& value );
-    static std::string toJson( const std::time_t& value );
-    static int32_t toJson( int32_t value );
-    static int64_t toJson( int64_t value );
-    static double toJson( double value );
-    static bool toJson( bool value );
-    static nlohmann::json toJson( std::shared_ptr<ModelBase> content );
-    static nlohmann::json toJson(nlohmann::json& value);
+        virtual void fromJson(nlohmann::json &json) = 0;
 
-};
+        static std::string toJson(const std::string &value);
 
-}
-}
-}
+        static std::string toJson(const std::time_t &value);
+
+        static int32_t toJson(int32_t value);
+
+        static int64_t toJson(int64_t value);
+
+        static double toJson(double value);
+
+        static bool toJson(bool value);
+
+        static nlohmann::json toJson(std::shared_ptr<ModelBase> content);
+
+        static nlohmann::json toJson(nlohmann::json &value);
+
+    };
+
 }
 
 #endif /* ModelBase_H_ */

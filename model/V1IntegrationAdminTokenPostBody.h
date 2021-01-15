@@ -23,53 +23,51 @@
 
 #include <string>
 
-namespace io {
-namespace swagger {
-namespace server {
-namespace model {
+namespace io::swagger::server::model {
 
 /// <summary>
 ///
 /// </summary>
-class  V1IntegrationAdminTokenPostBody
-    : public ModelBase
-{
-public:
-    V1IntegrationAdminTokenPostBody();
-    virtual ~V1IntegrationAdminTokenPostBody();
+    class V1IntegrationAdminTokenPostBody
+            : public ModelBase {
+    public:
+        V1IntegrationAdminTokenPostBody();
 
-    /////////////////////////////////////////////
-    /// ModelBase overrides
+        virtual ~V1IntegrationAdminTokenPostBody();
 
-    void validate() override;
+        /////////////////////////////////////////////
+        /// ModelBase overrides
 
-    nlohmann::json toJson() const override;
-    void fromJson(nlohmann::json& json) override;
+        void validate() override;
 
-    /////////////////////////////////////////////
-    /// V1IntegrationAdminTokenPostBody members
+        nlohmann::json toJson() const override;
 
-    /// <summary>
-    ///
-    /// </summary>
-    std::string getUsername() const;
-    void setUsername(std::string value);
+        void fromJson(nlohmann::json &json) override;
+
+        /////////////////////////////////////////////
+        /// V1IntegrationAdminTokenPostBody members
+
         /// <summary>
-    ///
-    /// </summary>
-    std::string getPassword() const;
-    void setPassword(std::string value);
+        ///
+        /// </summary>
+        std::string getUsername() const;
 
-protected:
-    std::string m_Username;
+        void setUsername(std::string value);
 
-    std::string m_Password;
+        /// <summary>
+        ///
+        /// </summary>
+        std::string getPassword() const;
 
-};
+        void setPassword(std::string value);
 
-}
-}
-}
+    protected:
+        std::string m_Username;
+
+        std::string m_Password;
+
+    };
+
 }
 
 #endif /* V1IntegrationAdminTokenPostBody_H_ */

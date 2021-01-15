@@ -12,24 +12,18 @@
 
 #include "IntegrationadmintokenApiImpl.h"
 
-namespace io {
-namespace swagger {
-namespace server {
-namespace api {
+namespace io::swagger::server::api {
 
-using namespace io::swagger::server::model;
+    using namespace io::swagger::server::model;
 
-IntegrationadmintokenApiImpl::IntegrationadmintokenApiImpl(Pistache::Address addr)
-    : IntegrationadmintokenApi(addr)
-    {
+    IntegrationadmintokenApiImpl::IntegrationadmintokenApiImpl(Pistache::Address addr)
+            : IntegrationadmintokenApi(addr) {
     }
 
-void IntegrationadmintokenApiImpl::V1_integration_admin_token_post(const V1IntegrationAdminTokenPostBody &v1IntegrationAdminTokenPostBody, Pistache::Http::ResponseWriter &response) {
-    response.send(Pistache::Http::Code::Ok, "Do some magic\n");
-}
-
-}
-}
-}
+    void IntegrationadmintokenApiImpl::V1_integration_admin_token_post(
+            const V1IntegrationAdminTokenPostBody &v1IntegrationAdminTokenPostBody,
+            Pistache::Http::ResponseWriter &response) {
+        response.send(Pistache::Http::Code::Ok, "Do some magic\n");
+    }
 }
 

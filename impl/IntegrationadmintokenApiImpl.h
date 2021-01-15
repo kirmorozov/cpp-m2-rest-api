@@ -31,31 +31,25 @@
 #include "V1IntegrationAdminTokenPostBody.h"
 #include <string>
 
-namespace io {
-namespace swagger {
-namespace server {
-namespace api {
+namespace io::swagger::server::api {
 
-using namespace io::swagger::server::model;
+    using namespace io::swagger::server::model;
 
-class IntegrationadmintokenApiImpl : public io::swagger::server::api::IntegrationadmintokenApi {
-public:
-    IntegrationadmintokenApiImpl(Pistache::Address addr);
+    class IntegrationadmintokenApiImpl : public io::swagger::server::api::IntegrationadmintokenApi {
+    public:
+        IntegrationadmintokenApiImpl(Pistache::Address addr);
 //    IntegrationadmintokenApiImpl(Pistache::Address addr)
 //            : IntegrationadmintokenApi(addr)
 //    {
 //    }
 //    ~IntegrationadmintokenApiImpl() { };
 
-    void V1_integration_admin_token_post(const V1IntegrationAdminTokenPostBody &v1IntegrationAdminTokenPostBody, Pistache::Http::ResponseWriter &response);
+        void V1_integration_admin_token_post(const V1IntegrationAdminTokenPostBody &v1IntegrationAdminTokenPostBody,
+                                             Pistache::Http::ResponseWriter &response);
 
-};
+    };
 
 }
-}
-}
-}
-
 
 
 #endif

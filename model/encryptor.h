@@ -95,7 +95,7 @@ namespace mg::m2 {
                     recreated = _hash_argon(password, salt);
                 } else if (hash.substr(hash.length() - 2, 2) == ":1") {
                     clean_hash = hash.substr(0, hash.find(':'));
-                    auto salt = hash.substr(hash.find(':') + 1, hash.length() - clean_hash.length() - 3);
+                    auto salt = hash.substr(hash.find(':') + 1, hash.size() - clean_hash.size() - 3);
                     recreated = _hash_sha256(password, salt);
                 } else if (hash.substr(hash.length() - 2, 2) == ":0") {
                     clean_hash = hash.substr(0, hash.find(':'));
@@ -181,11 +181,7 @@ namespace mg::m2 {
             const char* c_salt = salt.c_str();
             unsigned char hashed_password[hash_len];
             unsigned char* slt = *(unsigned char**)(&c_salt);
-//                std::u16string u16pwd(password);
-//                const char* c_u16pwd = u16pwd.c_str();
-//                char* pwd = *( char**)(&c_u16pwd);
 
-            //unsigned char* slt = reinterpret_cast<unsigned char*>(c_salt)
             if (crypto_pwhash(
                     hashed_password,
                     hash_len,
@@ -198,7 +194,6 @@ namespace mg::m2 {
                 throw "Sodium out of memory!";
             }
 
-            // std::string hash_pwd_str(reinterpret_cast<const char *>(hashed_password));
             return bin2hex(hashed_password, hash_len);
         }
 

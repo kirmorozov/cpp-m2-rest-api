@@ -10,19 +10,16 @@
 
 #include <string>
 
-namespace io {
-namespace swagger {
-namespace server {
-namespace model {
+namespace io::swagger::server::model {
 
 /// <summary>
 ///
 /// </summary>
-    class  V1StoreGroup
-            : public ModelBase
-    {
+    class V1StoreGroup
+            : public ModelBase {
     public:
         V1StoreGroup();
+
         virtual ~V1StoreGroup();
 
         /////////////////////////////////////////////
@@ -31,7 +28,8 @@ namespace model {
         void validate() override;
 
         nlohmann::json toJson() const override;
-        void fromJson(nlohmann::json& json) override;
+
+        void fromJson(nlohmann::json &json) override;
 
         /////////////////////////////////////////////
         /// V1StoreGroup members
@@ -40,31 +38,42 @@ namespace model {
         ///
         /// </summary>
         int getId() const;
+
         void setId(int value);
+
         /// <summary>
         ///
         /// </summary>
         std::string getCode() const;
+
         void setCode(std::string value);
+
         /// <summary>
         ///
         /// </summary>
         std::string getName() const;
+
         void setName(std::string value);
+
         /// <summary>
         ///
         /// </summary>
         int getWebsiteId() const;
+
         void setWebsiteId(int value);
+
         /// <summary>
         ///
         /// </summary>
         int getRootCategoryId() const;
+
         void setRootCategoryId(int value);
+
         /// <summary>
         ///
         /// </summary>
         int getDefaultStoreId() const;
+
         void setDefaultStoreId(int value);
 
     protected:
@@ -76,9 +85,6 @@ namespace model {
         int _default_store_id;
     };
 
-}
-}
-}
 }
 
 #endif //MG_M2_API_V1StoreGroup_H
