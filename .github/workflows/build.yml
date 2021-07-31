@@ -41,9 +41,8 @@ jobs:
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Run API server
-      working-directory: ${{github.workspace}}/build
       # Install test framework
-      run: mg_m2_api &
+      run: sh scripts/ubuntu-service-run.sh && sleep 1 && sh ubuntu-service-status.sh
 
     - name: Test
       working-directory: ${{github.workspace}}/tests
