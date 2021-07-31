@@ -16,6 +16,7 @@ link_directories(/usr/local/lib64)
 link_directories(/usr/lib64/php/modules)
 
 include_directories(model)
+include_directories(3rdparty/includes)
 #include_directories(api)
 #include_directories(impl)
 
