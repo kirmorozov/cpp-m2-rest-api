@@ -9,6 +9,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  MYSQL_CONNECTION: 'root:123123qa@172.17.0.2/db'
 
 jobs:
   build:
@@ -22,18 +23,13 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Install dependencies
+      working-directory: ${{github.workspace}}/scripts
       # Install dependencies:
       # - Pistache
       # - Mysql XDevAPI
       # - Sodium
       # - JSON https://github.com/nlohmann/json
-      run: >-
-        sudo add-apt-repository ppa:pistache+team/unstable && 
-        wget https://dev.mysql.com/get/mysql-apt-config_0.8.18-1_all.deb && 
-        sudo dpkg -i mysql-apt-config_0.8.18-1_all.deb &&
-        sudo apt update && 
-        sudo apt install libpistache-dev libmysqlcppconn-dev libsodium-dev &&
-        wget -O 3rdparty/includes/json.hpp https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp
+      run: sh ubuntu-install-dev.sh
       
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -44,13 +40,18 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    - name: Install test dependencies, database fixtures
-      working-directory: ${{github.workspace}}/tests
+    - name: Run API server
+      working-directory: ${{github.workspace}}/build
       # Install test framework
-      run: npm ci
+      run: mg_m2_api &
 
     - name: Test
       working-directory: ${{github.workspace}}/tests
       # Run End-to-End tests
       run: npm run codeceptjs:headless
+
+    - name: Kill API server
+      working-directory: ${{github.workspace}}/build
+      # Install test framework
+      run: pkill mg_m2_api
       

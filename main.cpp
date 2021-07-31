@@ -1,10 +1,9 @@
 
-/*
-   Mathieu Stefani, 07 février 2016
-   Example of a REST endpoint with routing
-*/
-
 #include <algorithm>
+#include <thread>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 
 #include <pistache/http.h>
 #include <pistache/router.h>
@@ -14,7 +13,7 @@
 
 #include "encryptor.h"
 
-//#include "json.hpp"
+#include "json.hpp"
 #include "Error-response.h"
 #include "Error-response.cpp"
 #include "V1IntegrationAdminTokenPostBody.h"
@@ -24,14 +23,13 @@
 #include "store/V1StoreGroup.h"
 #include "store/V1StoreGroup.cpp"
 
-#include <thread>
-#include <iostream>
-#include <filesystem>
 
 using namespace std;
 using namespace mysqlx;
 using namespace Pistache;
 
+using nlohmann::json;
+using nlohmann::json_pointer;
 using m2_encryptor = mg::m2::Encryptor;
 
 using namespace io::swagger::server::model;
@@ -428,33 +426,51 @@ protected:
     Rest::Router router;
 };
 
+void error_out(std::string message) {
+    cout << message << endl;
+    exit(100);
+}
+
+struct dbconfig {
+    std::string username;
+    std::string password;
+    std::string host;
+    std::string dbname;
+};
+
 int main(int argc, char *argv[]) {
-    Pistache::Port port(8080);
+
+    std::string config_name("config.json");
+    if (argc >=2) {
+        config_name = argv[1];
+    }
+    std::ifstream config_file(config_name);
+    json jconfig;
     std::string dbConfigStr;
-    dbConfigStr = std::getenv("M2_MYSQL_CONNECTION");
+    int concurrecy = hardware_concurrency();
+    if (config_file.is_open())
+    {
+        jconfig = json::parse(config_file);
+        auto dbjson = jconfig["/db/connection/default"_json_pointer];
 
-
-    int thr = 2;
-
-    if (argc >= 2) {
-        port = std::stol(argv[1]);
-
-        if (argc >= 3)
-            thr = std::stol(argv[2]);
+        dbConfigStr = "" +
+                dbjson["username"].get<std::string>() + ":" +
+                dbjson["password"].get<std::string>() + "@" +
+                dbjson["host"].get<std::string>() + "/" +
+                dbjson["dbname"].get<std::string>();
+        config_file.close();
+    } else {
+        error_out("Can't open config file.");
     }
 
-    cout << "Cores = " << hardware_concurrency() << endl;
-    cout << "Using " << thr << " threads" << endl;
+    cout << "Using " << concurrecy << " threads" << endl;
     cout << "CWD: " << fs::current_path() << endl;
 
-    auto encryption_key = std::string(std::getenv("M2_ENCRYPTION_KEY"));
+    auto encryption_key = jconfig["crypt"]["key"].get<std::string>();
     auto *enc = new m2_encryptor("");
     sharedEncryptor encryptorPtr = sharedEncryptor(enc);
 
-    auto connection_string = dbConfigStr; //std::string(std::getenv("M2_MYSQL_CONNECTION")); // "root:123123qa@172.17.0.3/b12_06"
-
-    cout << connection_string << endl;
-    auto *dbConnection = new Client(connection_string, ClientOption::POOL_MAX_SIZE, thr);
+    auto *dbConnection = new Client(dbConfigStr, ClientOption::POOL_MAX_SIZE, concurrecy);
     sharedClient ClientPtr = sharedClient(dbConnection);
 
     auto sess = dbConnection->getSession();
@@ -463,12 +479,9 @@ int main(int argc, char *argv[]) {
         Row data = res.fetchOne();
         cout << "Mysql Connection check: " << data[0] << endl;
     }
-//
-//    auto res_sha = enc->validateHash(
-//            "123123qa",
-//            "0db6a1f30f2b53aad28e30690a159a35f398c1c7478929c57fb24e8fa6dd4bbd:salt:1");
-//    cout << "Hash validation sha256:" << res_sha << endl;
 
+    int portNum = 8080;
+    Pistache::Port port(portNum);
     Pistache::Address addr(Pistache::Ipv4::any(), port);
 
     auto opts = Pistache::Http::Endpoint::options()
@@ -478,7 +491,7 @@ int main(int argc, char *argv[]) {
     Pistache::Http::Endpoint server(addr);
     MG_M2_API_point stats(addr);
 
-    stats.init(ClientPtr, encryptorPtr, thr);
+    stats.init(ClientPtr, encryptorPtr, concurrecy);
 
     stats.start();
 

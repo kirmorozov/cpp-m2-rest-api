@@ -6,6 +6,15 @@ Communication with MySql is done though [XDevAPI](https://dev.mysql.com/doc/dev/
 Admin login (`index.php/rest/V1/integration/admin/token`) works using libsodium, with same encryption as within Magento Core. 
 Primitive ACL validation added for some basic GET methods implemented.
 
+
+Configuration
+===========
+To make it simple, we will convert configuration to json and use it.
+Application will read config.json from original config
+```shell
+php -r '$x = include("app/etc/env.php"); echo json_encode($x);' > config.json
+```
+
 Performance 
 ===========
 Other metrics were not checked, better to check with Magento original Rest Test suite.
