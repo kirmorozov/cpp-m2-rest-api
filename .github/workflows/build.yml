@@ -24,7 +24,12 @@ jobs:
     - name: Install dependencies
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: sudo add-apt-repository ppa:pistache+team/unstable && sudo apt update && sudo apt install libpistache-dev libmysqlcppconn-dev
+      run: >-
+        sudo add-apt-repository ppa:pistache+team/unstable && 
+        wget https://dev.mysql.com/get/mysql-apt-config_0.8.18-1_all.deb
+        sudo dpkg -i mysql-apt-config_0.8.18-1_all.deb && 
+        sudo apt update && 
+        sudo apt install libpistache-dev libmysqlcppconn-dev
       
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
