@@ -9,7 +9,9 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     libsodium-devel \
     json-devel \
     rapidjson-devel \
-    mysql-connector-c++-devel
+    mysql-connector-c++-devel \
+    python3-pip && \
+    pip3 install meson ninja
 
 
 RUN mkdir /var/run/sshd && \
@@ -24,18 +26,8 @@ RUN echo "export VISIBLE=now" >> /etc/profile
 RUN cd $APP_ROOT && \
     git clone https://github.com/pistacheio/pistache.git && \
     cd pistache && \
-    git submodule update --init && \
-    mkdir -p {build,prefix} && \
-    cd build && \
-    cmake -G "Unix Makefiles" \
-        -DCMAKE_BUILD_TYPE=Debug \
-        -DPISTACHE_BUILD_EXAMPLES=true \
-        -DPISTACHE_BUILD_TESTS=true \
-        -DPISTACHE_BUILD_DOCS=false \
-        -DPISTACHE_USE_SSL=true \
-        ../ && \
-    make -j && \
-    make install
+    meson setup build --buildtype=debug && \
+    meson install -C build
 
 # 22 for ssh server. 7777 for gdb server.
 EXPOSE 22 7777 8080
