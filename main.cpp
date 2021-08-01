@@ -23,10 +23,13 @@
 #include "store/V1StoreGroup.h"
 #include "store/V1StoreGroup.cpp"
 
+using namespace Pistache;
+#include "handers.h"
+
 
 using namespace std;
 using namespace mysqlx;
-using namespace Pistache;
+
 
 using nlohmann::json;
 using nlohmann::json_pointer;
@@ -96,6 +99,8 @@ protected:
                     Routes::bind(&MG_M2_API_point::V1_modules_get_handler, this));
 
         Routes::Get(router, "/_ready", Routes::bind(&Generic::handleReady));
+
+        Routes::Get(router, "/rest", Routes::bind(&Generic::handleRest));
     }
 
     void V1_integration_admin_token_post_handler(const Rest::Request &request, Http::ResponseWriter response) {
@@ -467,7 +472,7 @@ int main(int argc, char *argv[]) {
     cout << "CWD: " << fs::current_path() << endl;
 
     auto encryption_key = jconfig["crypt"]["key"].get<std::string>();
-    auto *enc = new m2_encryptor("");
+    auto *enc = new m2_encryptor(encryption_key);
     sharedEncryptor encryptorPtr = sharedEncryptor(enc);
 
     auto *dbConnection = new Client(dbConfigStr, ClientOption::POOL_MAX_SIZE, concurrecy);
