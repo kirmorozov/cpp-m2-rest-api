@@ -53,6 +53,7 @@ jobs:
       run: npm ci
 
     - name: Test
+      timeout-minutes: 1
       working-directory: ${{github.workspace}}/tests
       # Run End-to-End tests
       run: npm run codeceptjs:headless
