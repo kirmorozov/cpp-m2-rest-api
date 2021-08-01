@@ -5,7 +5,9 @@
 #include <fstream>
 #include <filesystem>
 
+#include <pistache/common.h>
 #include <pistache/http.h>
+#include <pistache/http_headers.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
@@ -24,6 +26,7 @@
 #include "store/V1StoreGroup.cpp"
 
 using namespace Pistache;
+using namespace Pistache::Http;
 #include "handers.h"
 
 
