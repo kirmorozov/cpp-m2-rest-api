@@ -47,6 +47,11 @@ jobs:
       # Install test framework
       run: sh scripts/ubuntu-service-run.sh && sleep 1 && sh scripts/ubuntu-service-status.sh
 
+    - name: Test framework setup
+      working-directory: ${{github.workspace}}/tests
+      # Run End-to-End tests
+      run: npm ci
+
     - name: Test
       working-directory: ${{github.workspace}}/tests
       # Run End-to-End tests
