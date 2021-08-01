@@ -141,6 +141,7 @@ protected:
                 adminId = int(data[0]);
             }
         }
+        sess.close();
         if (validAdmin) {
             nlohmann::json result = _createAdminToken(adminId);
             response.send(Pistache::Http::Code::Ok, result.dump());
