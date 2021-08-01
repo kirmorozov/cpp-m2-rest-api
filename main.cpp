@@ -120,9 +120,8 @@ protected:
 
         bool validAdmin = false;
         int adminId = 0;
-
-        auto sess = dbConnection->getSession();
         {
+            auto sess = dbConnection->getSession();
             auto db = sess.getDefaultSchema();
             auto admin_table = db.getTable("admin_user");
             //  select password from admin_user where username = ? limit 1;
@@ -141,7 +140,6 @@ protected:
                 adminId = int(data[0]);
             }
         }
-        sess.close();
         if (validAdmin) {
             nlohmann::json result = _createAdminToken(adminId);
             response.send(Pistache::Http::Code::Ok, result.dump());
