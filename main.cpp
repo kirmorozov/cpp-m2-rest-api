@@ -79,7 +79,7 @@ public:
 
 protected:
     void setupRoutes() {
-        std::string base = "/index.php/rest/V1";
+        std::string base = "/rest/V1";
 //        std::string base = "/V1";
         Routes::Post(router, base + "/integration/admin/token",
                      Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
