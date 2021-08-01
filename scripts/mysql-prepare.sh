@@ -1,7 +1,7 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
 
-echo "select version();" | mysql -u root
+echo "select version();" | mysql -u root -h 127.0.0.1
 
 sudo service mysql stop
 
@@ -11,4 +11,4 @@ sleep 14
 sudo service mysql status
 
 
-echo "create database db;" | mysql -u root db
+echo "create database db;" | mysql -u root -h 127.0.0.1
