@@ -27,6 +27,7 @@
 
 using namespace Pistache;
 using namespace Pistache::Http;
+using namespace Pistache::Rest;
 #include "handers.h"
 
 
@@ -56,17 +57,6 @@ void printCookies(const Http::Request &req) {
     std::cout << "]" << std::endl;
 }
 
-namespace Generic {
-
-    void handleReady(const Rest::Request &, Http::ResponseWriter response) {
-        auto thr_id = std::this_thread::get_id();
-        std::stringstream respBuffer;
-        respBuffer << "Current Thread: " << thr_id;
-        response.send(Http::Code::Ok, respBuffer.str());
-    }
-
-}
-
 class MG_M2_API_point {
 public:
     MG_M2_API_point(Address addr)
@@ -89,7 +79,6 @@ public:
 
 protected:
     void setupRoutes() {
-        using namespace Rest;
         std::string base = "/index.php/rest/V1";
 //        std::string base = "/V1";
         Routes::Post(router, base + "/integration/admin/token",
@@ -101,9 +90,7 @@ protected:
         Routes::Get(router, base + "/modules",
                     Routes::bind(&MG_M2_API_point::V1_modules_get_handler, this));
 
-        Routes::Get(router, "/_ready", Routes::bind(&Generic::handleReady));
-
-        Routes::Get(router, "/rest", Routes::bind(&Generic::handleRest));
+        Generic::init(router);
     }
 
     void V1_integration_admin_token_post_handler(const Rest::Request &request, Http::ResponseWriter response) {
