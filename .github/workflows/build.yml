@@ -9,7 +9,6 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  MYSQL_CONNECTION: 'root:123123qa@172.17.0.2/db'
 
 jobs:
   build:
@@ -39,6 +38,10 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Run and prepare database
+      # Install test framework
+      run: sh scripts/mysql-prepare.sh
 
     - name: Run API server
       # Install test framework
