@@ -12,6 +12,14 @@ exports.config = {
       url: 'http://127.0.0.1:8080',
       show: false,
       windowSize: '1200x900'
+    },
+    REST: {
+      endpoint: 'http://127.0.0.1:8080/rest',
+      onRequest: (request) => {
+      }
+    },
+    "ChaiWrapper" : {
+      "require": "codeceptjs-chai"
     }
   },
   include: {
