@@ -1,8 +1,11 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
+
+echo "select version();" | mysql -u root
+
 sudo service mysql stop
 
-apt install mysql-server
+sudo apt install mysql-server
 sudo service mysql start
 sleep 14
 sudo service mysql status
