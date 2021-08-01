@@ -12,4 +12,4 @@ mysqladmin -u root -h 127.0.0.1 password '123123qa'
 export MYSQL_PWD=123123qa
 
 echo "create database db;" | mysql -u root -h 127.0.0.1
-gzcat scripts/db.sql.gz | | mysql -u root -h 127.0.0.1 db
+gzcat scripts/db.sql.gz | mysql -u root -h 127.0.0.1 db
