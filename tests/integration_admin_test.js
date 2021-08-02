@@ -9,10 +9,16 @@ Scenario('Bad password', async ({ I }) => {
     I.assertEqual(resp.data.message,"Access forbidden");
 });
 
-
 Scenario('Get Admin Token', async ({ I }) => {
     var resp = await I.sendPostRequest('/V1/integration/admin/token',
         {username:"admin", password:"123123qa"});
 
     I.assertEqual(resp.status,200);
+});
+
+Scenario('Bad Request', async ({ I }) => {
+    var resp = await I.sendPostRequest('/V1/integration/admin/token',
+        '{"username":"admin", "password":"123123qa"');
+
+    I.assertEqual(resp.status,400);
 });

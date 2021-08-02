@@ -28,22 +28,20 @@
 using namespace Pistache;
 using namespace Pistache::Http;
 using namespace Pistache::Rest;
-#include "handers.h"
-
-
-using namespace std;
-using namespace mysqlx;
-
 
 using nlohmann::json;
 using nlohmann::json_pointer;
-using m2_encryptor = mg::m2::Encryptor;
+using namespace mysqlx;
 
 using namespace io::swagger::server::model;
 
+using m2_encryptor = mg::m2::Encryptor;
 
-using sharedClient = std::shared_ptr<Client>;
-using sharedEncryptor = std::shared_ptr<m2_encryptor>;
+#include "app.h"
+#include "handers.h"
+
+using namespace std;
+
 namespace fs = std::filesystem;
 
 
@@ -57,7 +55,7 @@ void printCookies(const Http::Request &req) {
     std::cout << "]" << std::endl;
 }
 
-class MG_M2_API_point {
+class MG_M2_API_point : public App::Core {
 public:
     MG_M2_API_point(Address addr)
             : httpEndpoint(std::make_shared<Http::Endpoint>(addr)) {}
@@ -80,9 +78,7 @@ public:
 protected:
     void setupRoutes() {
         std::string base = "/rest/V1";
-//        std::string base = "/V1";
-        Routes::Post(router, base + "/integration/admin/token",
-                     Routes::bind(&MG_M2_API_point::V1_integration_admin_token_post_handler, this));
+
         Routes::Get(router, base + "/store/storeViews",
                     Routes::bind(&MG_M2_API_point::V1_store_storeViews_get_handler, this));
         Routes::Get(router, base + "/store/storeGroups",
@@ -91,64 +87,7 @@ protected:
                     Routes::bind(&MG_M2_API_point::V1_modules_get_handler, this));
 
         Generic::init(router);
-    }
-
-    void V1_integration_admin_token_post_handler(const Rest::Request &request, Http::ResponseWriter response) {
-
-        V1IntegrationAdminTokenPostBody PostBody;
-
-        try {
-            nlohmann::json request_body = nlohmann::json::parse(request.body());
-            PostBody.fromJson(request_body);
-            this->V1_integration_admin_token_post(PostBody, response);
-        } catch (std::runtime_error &e) {
-            //send a 400 error
-            Error_response error;
-            error.setMessage(e.what());
-            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
-            return;
-        } catch (exception &e) {
-            Error_response error;
-            error.setMessage(e.what());
-            response.send(Pistache::Http::Code::Bad_Request, error.toJson().dump());
-            return;
-        }
-    }
-
-    void V1_integration_admin_token_post(const V1IntegrationAdminTokenPostBody &body,
-                                         Pistache::Http::ResponseWriter &response) {
-
-        bool validAdmin = false;
-        int adminId = 0;
-        {
-            auto sess = dbConnection->getSession();
-            auto db = sess.getDefaultSchema();
-            auto admin_table = db.getTable("admin_user");
-            //  select password from admin_user where username = ? limit 1;
-            auto res = admin_table.select("user_id", "password")
-                    .where("username = :user")
-                    .limit(1)
-                    .bind("user", body.getUsername())
-                    .execute();
-            Row data = res.fetchOne();
-            auto passwd = data[0];
-            if (!data[0].isNull()) {
-                // +70-75 ms extra for request.
-                validAdmin = encryptor->validateHash(body.getPassword(), std::string(data[1]));
-            }
-            if (validAdmin) {
-                adminId = int(data[0]);
-            }
-        }
-        if (validAdmin) {
-            nlohmann::json result = _createAdminToken(adminId);
-            response.send(Pistache::Http::Code::Ok, result.dump());
-        } else {
-            Error_response error;
-            error.setMessage("Access forbidden");
-            error.setCode(int(Pistache::Http::Code::Forbidden));
-            response.send(Pistache::Http::Code::Forbidden, error.toJson().dump());
-        }
+        Integration::init(router, this);
     }
 
     void admin_acl_check(const Rest::Request &request, std::string resource) {
@@ -397,26 +336,7 @@ protected:
 
     }
 
-    std::string _createAdminToken(int userId) {
-        auto token = encryptor->random_string(32);
-        auto secret = encryptor->random_string(32);
-
-        auto sess = dbConnection->getSession();
-        {
-            auto db = sess.getDefaultSchema();
-            auto token_table = db.getTable("oauth_token");
-            //  select password from admin_user where username = ? limit 1;
-            auto res = token_table.insert("admin_id", "type", "token", "secret", "callback_url", "user_type")
-                    .values(userId, "access", token, secret, "", 2)
-                    .execute();
-        }
-        return token;
-    }
-
-
     std::shared_ptr<Http::Endpoint> httpEndpoint;
-    sharedClient dbConnection;
-    sharedEncryptor encryptor;
     Rest::Router router;
 };
 
