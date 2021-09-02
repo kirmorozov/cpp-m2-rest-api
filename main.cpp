@@ -18,6 +18,8 @@
 #include "json.hpp"
 #include "Error-response.h"
 #include "Error-response.cpp"
+#include "ModelBase.h"
+#include "ModelBase.cpp"
 #include "store/V1StoreView.h"
 #include "store/V1StoreView.cpp"
 #include "store/V1StoreGroup.h"
