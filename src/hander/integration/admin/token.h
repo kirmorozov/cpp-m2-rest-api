@@ -13,6 +13,9 @@ namespace Integration::Admin {
             try {
                 json request_body = json::parse(request.body());
 
+                std::string username = request_body["username"];
+                std::string password = request_body["password"];
+
                 bool validAdmin = false;
                 int adminId = 0;
                 {
@@ -23,14 +26,13 @@ namespace Integration::Admin {
                     auto res = admin_table.select("user_id", "password")
                             .where("username = :user")
                             .limit(1)
-                            .bind("user", request_body["username"].get<std::string>())
+                            .bind("user", username)
                             .execute();
                     Row data = res.fetchOne();
                     auto passwd = data[0];
                     if (!data[0].isNull()) {
                         // +70-75 ms extra for request.
-                        validAdmin = app->encryptor->validateHash(
-                                request_body["password"].get<std::string>(), std::string(data[1]));
+                        validAdmin = app->encryptor->validateHash(password, std::string(data[1]));
                     }
                     if (validAdmin) {
                         adminId = int(data[0]);
