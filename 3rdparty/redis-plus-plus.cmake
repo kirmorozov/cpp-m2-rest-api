@@ -11,8 +11,10 @@ ExternalProject_Add(redis-plus-plus
             -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/lib/installed
         )
 
+#include_directories(${CMAKE_BINARY_DIR}/lib/installed/include)
 target_include_directories(target PUBLIC ${CMAKE_BINARY_DIR}/lib/installed/include)
-#target_link_libraries(target ${CMAKE_BINARY_DIR}/lib/installed)
+target_link_directories(target PUBLIC ${CMAKE_BINARY_DIR}/lib/installed/lib)
+target_link_libraries(target redis++)
 
 add_dependencies(target redis-plus-plus)
 

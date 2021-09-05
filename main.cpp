@@ -1,42 +1,5 @@
 
-#include <algorithm>
-#include <thread>
-#include <iostream>
-#include <fstream>
-#include <filesystem>
-
-#include <pistache/common.h>
-#include <pistache/http.h>
-#include <pistache/http_headers.h>
-#include <pistache/router.h>
-#include <pistache/endpoint.h>
-
-#include <mysqlx/xdevapi.h>
-#include <sw/redis++/redis++.h>
-
-#include "encryptor.h"
-
-#include "json.hpp"
-#include "Error-response.h"
-#include "Error-response.cpp"
-#include "ModelBase.h"
-#include "ModelBase.cpp"
-#include "store/V1StoreView.h"
-#include "store/V1StoreView.cpp"
-#include "store/V1StoreGroup.h"
-#include "store/V1StoreGroup.cpp"
-
-using namespace Pistache;
-using namespace Pistache::Http;
-using namespace Pistache::Rest;
-
-using nlohmann::json;
-using nlohmann::json_pointer;
-using namespace mysqlx;
-
-using namespace io::swagger::server::model;
-
-using m2_encryptor = mg::m2::Encryptor;
+#include "references.hpp"
 
 #include "app.h"
 #include "handers.h"
@@ -61,12 +24,13 @@ public:
     Service(Address addr)
             : httpEndpoint(std::make_shared<Http::Endpoint>(addr)) {}
 
-    void init(dbClient connection, sharedEncryptor enc, int thr = 2) {
+    void init(dbClient mysql, sessionClient redis, sharedEncryptor enc, int thr = 2) {
         auto opts = Http::Endpoint::options()
                 .threads(thr);
         httpEndpoint->init(opts);
         setupRoutes();
-        dbConnection = connection;
+        dbConnection = mysql;
+        sessionConnection = redis;
         encryptor = enc;
     }
 
@@ -346,13 +310,6 @@ void error_out(std::string message) {
     exit(100);
 }
 
-struct dbconfig {
-    std::string username;
-    std::string password;
-    std::string host;
-    std::string dbname;
-};
-
 int main(int argc, char *argv[]) {
 
     std::string config_name("config.json");
@@ -363,15 +320,18 @@ int main(int argc, char *argv[]) {
     json jconfig;
     int concurrecy = hardware_concurrency();
 
-    dbClient ClientDbPtr;
+    dbClient mysqlConnection;
+    sessionClient redisConnection;
 
     if (config_file.is_open()) {
-        jconfig = json::parse(config_file);
+        jconfig = nlohmann::json::parse(config_file);
         config_file.close();
     } else {
         error_out("Can't open config file.");
     }
 
+    cout << "Using " << concurrecy << " threads" << endl;
+    cout << "CWD: " << fs::current_path() << endl;
 
     {
         auto dbjson = jconfig["/db/connection/default"_json_pointer];
@@ -382,32 +342,40 @@ int main(int argc, char *argv[]) {
                       dbjson["dbname"].get<std::string>();
 
         auto *dbConnection = new Client(dbConfigStr, ClientOption::POOL_MAX_SIZE, concurrecy);
-        ClientDbPtr = dbClient(dbConnection);
+        mysqlConnection = dbClient(dbConnection);
         {
-            auto sess = ClientDbPtr->getSession();
+            auto sess = mysqlConnection->getSession();
             auto res = sess.sql("select version(), count(1) from core_config_data;").execute();
             Row data = res.fetchOne();
             cout << "Mysql version: " << data[0] << " Config values: " << data[1] << endl;
         }
     }
 
-    cout << "Using " << concurrecy << " threads" << endl;
-    cout << "CWD: " << fs::current_path() << endl;
-
     auto encryption_key = jconfig["crypt"]["key"].get<std::string>();
-    auto *enc = new m2_encryptor(encryption_key);
-    sharedEncryptor encryptorPtr = sharedEncryptor(enc);
+    sharedEncryptor encryptorPtr = sharedEncryptor(new m2_encryptor(encryption_key));
 
     auto session_storage = jconfig["session"]["save"].get<std::string>();
     if (session_storage == "redis") {
-        cout << "Init redis connection" << endl;
-
         sw::redis::ConnectionOptions connection_options;
         connection_options.host = jconfig["session"]["redis"]["host"];  // Required.
         std::string _r_port = jconfig["session"]["redis"]["port"];
-        std::string _r_db = jconfig["session"]["redis"]["port"];
+        std::string _r_db = jconfig["session"]["redis"]["database"];
         connection_options.port = std::stoi(_r_port); // Optional. The default port is 6379.
         connection_options.db   = std::stoi(_r_db);
+
+        sw::redis::ConnectionPoolOptions pool_opts;
+        pool_opts.size = concurrecy;
+        pool_opts.wait_timeout = std::chrono::milliseconds(50);
+
+        auto redis = sw::redis::Redis(connection_options, pool_opts);
+        {
+            auto conn = redis.pipeline(false);
+            auto info_str = redis.info("server");
+            auto start_p = info_str.find('\n');
+            auto end_p = info_str.find('\n', start_p+1);
+            cout << info_str.substr(start_p+1,end_p-start_p-2) << endl;
+        }
+        redisConnection = sessionClient(&redis);
     }
 
     int portNum = 8080;
@@ -421,7 +389,7 @@ int main(int argc, char *argv[]) {
     Pistache::Http::Endpoint server(addr);
     Service app(addr);
 
-    app.init(ClientDbPtr, encryptorPtr, concurrecy);
+    app.init(mysqlConnection, redisConnection, encryptorPtr, concurrecy);
 
     app.start();
 
