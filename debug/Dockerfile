@@ -10,6 +10,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     json-devel \
     rapidjson-devel \
     mysql-connector-c++-devel \
+    hiredis-devel \
     python3-pip && \
     pip3 install meson ninja
 
