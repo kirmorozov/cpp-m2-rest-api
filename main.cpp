@@ -56,12 +56,12 @@ void printCookies(const Http::Request &req) {
     std::cout << "]" << std::endl;
 }
 
-class MG_M2_API_point : public App::Core {
+class Service : public App::Core {
 public:
-    MG_M2_API_point(Address addr)
+    Service(Address addr)
             : httpEndpoint(std::make_shared<Http::Endpoint>(addr)) {}
 
-    void init(sharedClient connection, sharedEncryptor enc, size_t thr = 2) {
+    void init(dbClient connection, sharedEncryptor enc, int thr = 2) {
         auto opts = Http::Endpoint::options()
                 .threads(thr);
         httpEndpoint->init(opts);
@@ -81,11 +81,11 @@ protected:
         std::string base = "/rest/V1";
 
         Routes::Get(router, base + "/store/storeViews",
-                    Routes::bind(&MG_M2_API_point::V1_store_storeViews_get_handler, this));
+                    Routes::bind(&Service::V1_store_storeViews_get_handler, this));
         Routes::Get(router, base + "/store/storeGroups",
-                    Routes::bind(&MG_M2_API_point::V1_store_storeGroups_get_handler, this));
+                    Routes::bind(&Service::V1_store_storeGroups_get_handler, this));
         Routes::Get(router, base + "/modules",
-                    Routes::bind(&MG_M2_API_point::V1_modules_get_handler, this));
+                    Routes::bind(&Service::V1_modules_get_handler, this));
 
         Generic::init(router);
         Integration::init(router, this);
@@ -363,7 +363,7 @@ int main(int argc, char *argv[]) {
     json jconfig;
     int concurrecy = hardware_concurrency();
 
-    sharedClient ClientDbPtr;
+    dbClient ClientDbPtr;
 
     if (config_file.is_open()) {
         jconfig = json::parse(config_file);
@@ -382,7 +382,7 @@ int main(int argc, char *argv[]) {
                       dbjson["dbname"].get<std::string>();
 
         auto *dbConnection = new Client(dbConfigStr, ClientOption::POOL_MAX_SIZE, concurrecy);
-        ClientDbPtr = sharedClient(dbConnection);
+        ClientDbPtr = dbClient(dbConnection);
         {
             auto sess = ClientDbPtr->getSession();
             auto res = sess.sql("select version(), count(1) from core_config_data;").execute();
@@ -419,10 +419,10 @@ int main(int argc, char *argv[]) {
             .flags(Tcp::Options::ReuseAddr);
 
     Pistache::Http::Endpoint server(addr);
-    MG_M2_API_point stats(addr);
+    Service app(addr);
 
-    stats.init(ClientDbPtr, encryptorPtr, concurrecy);
+    app.init(ClientDbPtr, encryptorPtr, concurrecy);
 
-    stats.start();
+    app.start();
 
 }
