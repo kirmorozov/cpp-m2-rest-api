@@ -404,8 +404,10 @@ int main(int argc, char *argv[]) {
 
         sw::redis::ConnectionOptions connection_options;
         connection_options.host = jconfig["session"]["redis"]["host"];  // Required.
-        connection_options.port = jconfig["session"]["redis"]["port"]; // Optional. The default port is 6379.
-        connection_options.db   = jconfig["session"]["redis"]["database"];
+        std::string _r_port = jconfig["session"]["redis"]["port"];
+        std::string _r_db = jconfig["session"]["redis"]["port"];
+        connection_options.port = std::stoi(_r_port); // Optional. The default port is 6379.
+        connection_options.db   = std::stoi(_r_db);
     }
 
     int portNum = 8080;
