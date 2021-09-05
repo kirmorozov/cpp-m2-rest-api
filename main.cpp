@@ -12,6 +12,7 @@
 #include <pistache/endpoint.h>
 
 #include <mysqlx/xdevapi.h>
+#include <sw/redis++/redis++.h>
 
 #include "encryptor.h"
 
@@ -72,7 +73,7 @@ public:
     void start() {
         httpEndpoint->setHandler(router.handler());
         httpEndpoint->serve();
-        cout << "Running" <<endl;
+        cout << "Running" << endl;
     }
 
 protected:
@@ -355,26 +356,39 @@ struct dbconfig {
 int main(int argc, char *argv[]) {
 
     std::string config_name("config.json");
-    if (argc >=2) {
+    if (argc >= 2) {
         config_name = argv[1];
     }
     std::ifstream config_file(config_name);
     json jconfig;
-    std::string dbConfigStr;
     int concurrecy = hardware_concurrency();
-    if (config_file.is_open())
-    {
-        jconfig = json::parse(config_file);
-        auto dbjson = jconfig["/db/connection/default"_json_pointer];
 
-        dbConfigStr = "" +
-                dbjson["username"].get<std::string>() + ":" +
-                dbjson["password"].get<std::string>() + "@" +
-                dbjson["host"].get<std::string>() + "/" +
-                dbjson["dbname"].get<std::string>();
+    sharedClient ClientDbPtr;
+
+    if (config_file.is_open()) {
+        jconfig = json::parse(config_file);
         config_file.close();
     } else {
         error_out("Can't open config file.");
+    }
+
+
+    {
+        auto dbjson = jconfig["/db/connection/default"_json_pointer];
+        std::string dbConfigStr = "" +
+                      dbjson["username"].get<std::string>() + ":" +
+                      dbjson["password"].get<std::string>() + "@" +
+                      dbjson["host"].get<std::string>() + "/" +
+                      dbjson["dbname"].get<std::string>();
+
+        auto *dbConnection = new Client(dbConfigStr, ClientOption::POOL_MAX_SIZE, concurrecy);
+        ClientDbPtr = sharedClient(dbConnection);
+        {
+            auto sess = ClientDbPtr->getSession();
+            auto res = sess.sql("select version(), count(1) from core_config_data;").execute();
+            Row data = res.fetchOne();
+            cout << "Mysql version: " << data[0] << " Config values: " << data[1] << endl;
+        }
     }
 
     cout << "Using " << concurrecy << " threads" << endl;
@@ -384,14 +398,14 @@ int main(int argc, char *argv[]) {
     auto *enc = new m2_encryptor(encryption_key);
     sharedEncryptor encryptorPtr = sharedEncryptor(enc);
 
-    auto *dbConnection = new Client(dbConfigStr, ClientOption::POOL_MAX_SIZE, concurrecy);
-    sharedClient ClientPtr = sharedClient(dbConnection);
+    auto session_storage = jconfig["session"]["save"].get<std::string>();
+    if (session_storage == "redis") {
+        cout << "Init redis connection" << endl;
 
-    auto sess = dbConnection->getSession();
-    {
-        auto res = sess.sql("select count(1) from core_config_data;").execute();
-        Row data = res.fetchOne();
-        cout << "Mysql Connection check: " << data[0] << endl;
+        sw::redis::ConnectionOptions connection_options;
+        connection_options.host = jconfig["session"]["redis"]["host"];  // Required.
+        connection_options.port = jconfig["session"]["redis"]["port"]; // Optional. The default port is 6379.
+        connection_options.db   = jconfig["session"]["redis"]["database"];
     }
 
     int portNum = 8080;
@@ -399,13 +413,13 @@ int main(int argc, char *argv[]) {
     Pistache::Address addr(Pistache::Ipv4::any(), port);
 
     auto opts = Pistache::Http::Endpoint::options()
-            .threads(1);
-    opts.flags(Tcp::Options::ReuseAddr);
+            .threads(concurrecy)
+            .flags(Tcp::Options::ReuseAddr);
 
     Pistache::Http::Endpoint server(addr);
     MG_M2_API_point stats(addr);
 
-    stats.init(ClientPtr, encryptorPtr, concurrecy);
+    stats.init(ClientDbPtr, encryptorPtr, concurrecy);
 
     stats.start();
 

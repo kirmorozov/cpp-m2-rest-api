@@ -12,6 +12,7 @@ include(3rdparty/hiredis.cmake)
 include(3rdparty/pistache.cmake)
 include(3rdparty/sodium.cmake)
 include(3rdparty/mysqlx.cmake)
+include(3rdparty/redis-plus-plus.cmake)
 
 include_directories(model)
 include_directories(3rdparty/includes)
