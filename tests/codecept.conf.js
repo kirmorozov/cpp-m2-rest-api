@@ -20,6 +20,12 @@ exports.config = {
     },
     "ChaiWrapper" : {
       "require": "codeceptjs-chai"
+    },
+    "DbHelper": {
+      "require": "./node_modules/codeceptjs-dbhelper"
+    },
+    "CmdHelper": {
+      "require": "./node_modules/codeceptjs-cmdhelper"
     }
   },
   include: {
