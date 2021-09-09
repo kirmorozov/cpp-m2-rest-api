@@ -1,6 +1,7 @@
 #include "hander/generic/ready.h"
 #include "hander/generic/rest.h"
 #include "hander/integration/admin/token.h"
+#include "hander/cart/guest/totals-information.h"
 
 
 namespace Generic {
@@ -15,5 +16,16 @@ namespace Integration {
         auto handler = std::make_shared<Admin::Handler>(app);
         Routes::Post(router, "/rest/V1/integration/admin/token",
                      Routes::bind(&Admin::Handler::handleToken,handler));
+    }
+}
+
+namespace Cart {
+    void init(Router& router, App::Core* app) {
+        auto handler = std::make_shared<Guest::Handler>(app);
+        Routes::Post(router, "/rest/:store/V1/guest-carts/:cart/totals-information",
+                     Routes::bind(&Guest::Handler::handleTotals, handler));
+        Routes::Post(router, "/rest/V1/guest-carts/:cart/totals-information",
+                     Routes::bind(&Guest::Handler::handleTotals, handler));
+
     }
 }

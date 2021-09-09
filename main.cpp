@@ -26,7 +26,8 @@ public:
 
     void init(dbClient mysql, sessionClient redis, sharedEncryptor enc, int thr = 2) {
         auto opts = Http::Endpoint::options()
-                .threads(thr);
+                .threads(thr)
+                .flags(Tcp::Options::ReuseAddr);
         httpEndpoint->init(opts);
         setupRoutes();
         dbConnection = mysql;
@@ -53,6 +54,7 @@ protected:
 
         Generic::init(router);
         Integration::init(router, this);
+        Cart::init(router, this);
     }
 
     void admin_acl_check(const Rest::Request &request, std::string resource) {
