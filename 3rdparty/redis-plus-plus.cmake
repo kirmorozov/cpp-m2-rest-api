@@ -9,6 +9,7 @@ ExternalProject_Add(redis-plus-plus
         CMAKE_ARGS
             -DREDIS_PLUS_PLUS_CXX_STANDARD=17
             -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/lib/installed
+            -DREDIS_PLUS_PLUS_BUILD_TEST=OFF
         )
 
 #include_directories(${CMAKE_BINARY_DIR}/lib/installed/include)
