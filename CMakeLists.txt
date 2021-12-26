@@ -9,6 +9,7 @@ add_executable(target main.cpp)
 target_link_libraries(target pthread stdc++fs crypto ssl)
 
 include(3rdparty/json.cmake)
+include(3rdparty/inja.cmake)
 include(3rdparty/hiredis.cmake)
 include(3rdparty/pistache.cmake)
 include(3rdparty/sodium.cmake)
