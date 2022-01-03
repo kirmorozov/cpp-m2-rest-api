@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(target main.cpp)
 target_link_libraries(target pthread stdc++fs crypto ssl)
 
+include(3rdparty/zlib.cmake)
 include(3rdparty/json.cmake)
 include(3rdparty/inja.cmake)
 include(3rdparty/hiredis.cmake)

@@ -354,7 +354,7 @@ int main(int argc, char *argv[]) {
     }
 
     auto encryption_key = jconfig["crypt"]["key"].get<std::string>();
-    sharedEncryptor encryptorPtr = sharedEncryptor(new m2_encryptor(encryption_key));
+    sharedEncryptor encryptorPtr = std::make_shared<m2_encryptor>(encryption_key);
 
     auto session_storage = jconfig["session"]["save"].get<std::string>();
     if (session_storage == "redis") {
@@ -368,16 +368,13 @@ int main(int argc, char *argv[]) {
         sw::redis::ConnectionPoolOptions pool_opts;
         pool_opts.size = concurrecy;
         pool_opts.wait_timeout = std::chrono::milliseconds(50);
-
-        auto redis = sw::redis::Redis(connection_options, pool_opts);
+        redisConnection = std::make_shared<sw::redis::Redis>(connection_options, pool_opts);
         {
-            auto conn = redis.pipeline(false);
-            auto info_str = redis.info("server");
+            auto info_str = redisConnection->info("server");
             auto start_p = info_str.find('\n');
             auto end_p = info_str.find('\n', start_p+1);
             cout << info_str.substr(start_p+1,end_p-start_p-2) << endl;
         }
-        redisConnection = sessionClient(&redis);
     }
 
     int portNum = 8080;

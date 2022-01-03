@@ -14,8 +14,11 @@
 #include <sw/redis++/redis++.h>
 
 #include "encryptor.h"
+#include "util/zlib.h"
 
 #include "nlohmann/json.hpp"
+
+#include "util/php_serializer.h"
 #include "Error-response.h"
 #include "Error-response.cpp"
 #include "ModelBase.h"
