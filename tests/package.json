@@ -15,12 +15,12 @@
         "@codeceptjs/examples": "^1.2.1",
         "@codeceptjs/ui": "^0.4.6",
         "ansi-regex": "^6.0.1",
-        "codeceptjs": "^3.3.0",
+        "codeceptjs": "^3.3.2",
         "codeceptjs-chai": "^2.3.1",
         "codeceptjs-cmdhelper": "^2.3.0",
         "codeceptjs-dbhelper": "^1.1.0",
         "database-js-mysql": "^1.1.3",
-        "playwright": "^1.20.2",
+        "playwright": "^1.21.1",
         "puppeteer": "^10.2.0"
     }
 }
