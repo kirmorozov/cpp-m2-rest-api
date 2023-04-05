@@ -15,7 +15,7 @@
         "@codeceptjs/examples": "^1.2.1",
         "@codeceptjs/ui": "^0.4.6",
         "ansi-regex": "^6.0.1",
-        "codeceptjs": "^3.3.2",
+        "codeceptjs": "^3.4.1",
         "codeceptjs-chai": "^2.3.1",
         "codeceptjs-cmdhelper": "^2.3.0",
         "codeceptjs-dbhelper": "^1.1.0",
